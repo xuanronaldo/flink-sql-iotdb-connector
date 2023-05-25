@@ -41,7 +41,6 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
             .key("lookup.cache.ttl-sec")
             .intType()
             .defaultValue(-1);
-    protected static Session session;
 
     @Override
     public DynamicTableSource createDynamicTableSource(Context context) {
@@ -87,12 +86,5 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
         List<String> nodeUrls = Arrays.asList(options.get(NODE_URLS).toString().split(","));
         String user = options.get(USER).toString();
         String password = options.get(PASSWORD).toString();
-
-        try {
-            session = new Session.Builder().nodeUrls(nodeUrls).username(user).password(password).build();
-            session.open(false);
-        } catch (IoTDBConnectionException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
