@@ -3,13 +3,13 @@ package org.apache.iotdb.flink.sql.factory;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
-import org.apache.iotdb.rpc.IoTDBConnectionException;
-import org.apache.iotdb.session.Session;
+import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSource;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,7 +49,9 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
 
         ReadableConfig options = helper.getOptions();
         validateOptions(options);
-        return null;
+
+        TableSchema schema = context.getCatalogTable().getSchema();
+        return new IoTDBDynamicTableSource(options, schema);
     }
 
     @Override

@@ -4,14 +4,13 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.shaded.curator5.com.google.common.cache.Cache;
 import org.apache.flink.shaded.curator5.com.google.common.cache.CacheBuilder;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.TableFunction;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.iotdb.isession.SessionDataSet;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
@@ -19,10 +18,10 @@ import org.apache.iotdb.session.Session;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
 
+import javax.activation.UnsupportedDataTypeException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class IoTDBLookupFunction extends TableFunction<RowData> {
@@ -98,7 +97,7 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         super.close();
     }
 
-    public void eval(Object obj) throws IoTDBConnectionException, StatementExecutionException {
+    public void eval(Object obj) throws IoTDBConnectionException, StatementExecutionException, UnsupportedDataTypeException {
         RowData lookupKey = GenericRowData.of(obj);
         if (cache != null) {
             RowData cacheRow = cache.getIfPresent(lookupKey);
@@ -125,14 +124,28 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
             if ("Time".equals(fieldName)) {
                 continue;
             }
-            DataType dataType = schema.getFieldDataType(fieldName).get();
-            Field field = fields.get(columnNames.indexOf(fieldName));
+            values.add(getValue(fields.get(columnNames.indexOf(fieldName)), schema.getFieldDataType(fieldName).get()));
+        }
+        GenericRowData rowData = GenericRowData.of(values);
+        cache.put(lookupKey, rowData);
+        collect(rowData);
+    }
+
+    private Object getValue(Field value, DataType dataType) throws UnsupportedDataTypeException {
+        if (dataType == DataTypes.INT()) {
+            return value.getIntV();
+        } else if (dataType == DataTypes.BIGINT()) {
+            return value.getLongV();
+        } else if (dataType == DataTypes.FLOAT()) {
+            return value.getFloatV();
+        } else if (dataType == DataTypes.DOUBLE()) {
+            return value.getDoubleV();
+        } else if (dataType == DataTypes.BOOLEAN()) {
+            return value.getBoolV();
+        } else if (dataType == DataTypes.STRING()) {
+            return value.getStringValue();
+        } else {
+            throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType.toString());
         }
     }
-
-    private Object getValue(Field value, DataType dataType) {
-
-        return null;
-    }
-
 }
