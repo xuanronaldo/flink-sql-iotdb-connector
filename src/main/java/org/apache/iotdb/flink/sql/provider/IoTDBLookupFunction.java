@@ -1,16 +1,19 @@
 package org.apache.iotdb.flink.sql.provider;
 
-import org.apache.flink.configuration.ConfigOptions;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.shaded.curator5.com.google.common.cache.Cache;
 import org.apache.flink.shaded.curator5.com.google.common.cache.CacheBuilder;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.TableFunction;
 import org.apache.flink.table.types.DataType;
+import org.apache.iotdb.flink.sql.common.Options;
+import org.apache.iotdb.flink.sql.common.Utils;
+import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 import org.apache.iotdb.isession.SessionDataSet;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
@@ -23,65 +26,56 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class IoTDBLookupFunction extends TableFunction<RowData> {
-    private final TableSchema schema;
-    private final int cacheMaxRows;
-    private final int cacheTtlSec;
-    private final List<String> nodeUrls;
-    private final String user;
-    private final String password;
-    private final String device;
-
-    private Session session;
+    private final List<Tuple2<String, DataType>> SCHEMA;
+    private final int CACHE_MAX_ROWS;
+    private final int CACHE_TTL_SEC;
+    private final List<String> NODE_URLS;
+    private final String USER;
+    private final String PASSWORD;
+    private final String DEVICE;
+    private final List<String> MEASUREMENTS;
+    private final Session SESSION;
 
     private transient Cache<RowData, RowData> cache;
 
-    public IoTDBLookupFunction(ReadableConfig options, TableSchema schema) {
-        this.schema = schema;
+    public IoTDBLookupFunction(ReadableConfig options, SchemaWrapper schemaWrapper) {
+        this.SCHEMA = schemaWrapper.getSchema();
 
-        cacheMaxRows = options.get(ConfigOptions
-                .key("lookup.cache.max-rows")
-                .intType()
-                .noDefaultValue());
+        CACHE_MAX_ROWS = options.get(Options.LOOKUP_CACHE_MAX_ROWS);
 
-        cacheTtlSec = options.get(ConfigOptions
-                .key("lookup.cache.ttl-sec")
-                .intType()
-                .noDefaultValue());
+        CACHE_TTL_SEC = options.get(Options.LOOKUP_CACHE_TTL_SEC);
 
-        nodeUrls = Arrays.asList(options.get(ConfigOptions
-                .key("nodeUrls")
-                .stringType()
-                .noDefaultValue()).split(","));
+        NODE_URLS = Arrays.asList(options.get(Options.NODE_URLS).split(","));
 
-        user = options.get(ConfigOptions
-                .key("user")
-                .stringType()
-                .noDefaultValue());
+        USER = options.get(Options.USER);
 
-        password = options.get(ConfigOptions
-                .key("password")
-                .stringType()
-                .noDefaultValue());
+        PASSWORD = options.get(Options.PASSWORD);
 
-        device = options.get(ConfigOptions
-                .key("device")
-                .stringType()
-                .noDefaultValue());
+        DEVICE = options.get(Options.DEVICE);
+
+        MEASUREMENTS = SCHEMA.stream().map(field -> String.valueOf(field.f0)).collect(Collectors.toList());
+
+        SESSION = new Session
+                .Builder()
+                .nodeUrls(NODE_URLS)
+                .username(USER)
+                .password(PASSWORD)
+                .build();
     }
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
 
-        session = new Session.Builder().nodeUrls(nodeUrls).username(user).password(password).build();
-        session.open(false);
+        SESSION.open(false);
 
-        if (cacheMaxRows > 0 && cacheTtlSec > 0) {
+        if (CACHE_MAX_ROWS > 0 && CACHE_TTL_SEC > 0) {
             cache = CacheBuilder.newBuilder()
-                    .expireAfterAccess(cacheTtlSec, TimeUnit.SECONDS)
-                    .maximumSize(cacheMaxRows)
+                    .expireAfterAccess(CACHE_TTL_SEC, TimeUnit.SECONDS)
+                    .maximumSize(CACHE_MAX_ROWS)
                     .build();
         }
     }
@@ -91,8 +85,8 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         if (cache != null) {
             cache.invalidateAll();
         }
-        if (session != null) {
-            session.close();
+        if (SESSION != null) {
+            SESSION.close();
         }
         super.close();
     }
@@ -109,43 +103,23 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
 
         long timestamp = lookupKey.getLong(0);
 
-        List<String> fieldNames = Arrays.asList(schema.getFieldNames());
-        fieldNames.remove("Time");
-        String measurements = String.join(",", fieldNames);
-
-        String sql = String.format("select %s from %s where time=%d", measurements, device, timestamp);
-        SessionDataSet dataSet = session.executeQueryStatement(sql);
+        String sql = String.format("SELECT %s FROM %s WHERE TIME=%d", StringUtils.join(MEASUREMENTS, ','), DEVICE, timestamp);
+        SessionDataSet dataSet = SESSION.executeQueryStatement(sql);
         List<String> columnNames = dataSet.getColumnNames();
+        columnNames.remove("Time");
         RowRecord record = dataSet.next();
         List<Field> fields = record.getFields();
 
         ArrayList<Object> values = new ArrayList<>();
-        for (String fieldName : schema.getFieldNames()) {
-            if ("Time".equals(fieldName)) {
-                continue;
-            }
-            values.add(getValue(fields.get(columnNames.indexOf(fieldName)), schema.getFieldDataType(fieldName).get()));
+        values.add(timestamp);
+        for (Tuple2<String, DataType> filed : SCHEMA) {
+            values.add(Utils.getValue(fields.get(columnNames.indexOf(DEVICE+'.'+filed.f0)), filed.f1));
         }
-        GenericRowData rowData = GenericRowData.of(values);
-        cache.put(lookupKey, rowData);
-        collect(rowData);
-    }
 
-    private Object getValue(Field value, DataType dataType) throws UnsupportedDataTypeException {
-        if (dataType == DataTypes.INT()) {
-            return value.getIntV();
-        } else if (dataType == DataTypes.BIGINT()) {
-            return value.getLongV();
-        } else if (dataType == DataTypes.FLOAT()) {
-            return value.getFloatV();
-        } else if (dataType == DataTypes.DOUBLE()) {
-            return value.getDoubleV();
-        } else if (dataType == DataTypes.BOOLEAN()) {
-            return value.getBoolV();
-        } else if (dataType == DataTypes.STRING()) {
-            return value.getStringValue();
-        } else {
-            throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType.toString());
+        GenericRowData rowData = GenericRowData.of(values.toArray());
+        if (cache != null) {
+            cache.put(lookupKey, rowData);
         }
+        collect(rowData);
     }
 }

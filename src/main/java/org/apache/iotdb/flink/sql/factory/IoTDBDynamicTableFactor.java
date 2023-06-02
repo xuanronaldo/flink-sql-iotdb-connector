@@ -9,6 +9,8 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
+import org.apache.iotdb.flink.sql.common.Options;
+import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSink;
 import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSource;
 
 import java.util.Arrays;
@@ -17,30 +19,6 @@ import java.util.List;
 import java.util.Set;
 
 public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, DynamicTableSinkFactory {
-    public static final ConfigOption<String> NODE_URLS = ConfigOptions
-            .key("nodeUrls")
-            .stringType()
-            .defaultValue("127.0.0.1:6667");
-    public static final ConfigOption<String> USER = ConfigOptions
-            .key("user")
-            .stringType()
-            .defaultValue("root");
-    public static final ConfigOption<String> PASSWORD = ConfigOptions
-            .key("password")
-            .stringType()
-            .defaultValue("root");
-    public static final ConfigOption<Integer> DEVICE = ConfigOptions
-            .key("device")
-            .intType()
-            .defaultValue(-1);
-    public static final ConfigOption<Integer> LOOKUP_CACHE_MAX_ROWS = ConfigOptions
-            .key("lookup.cache.max-rows")
-            .intType()
-            .defaultValue(-1);
-    public static final ConfigOption<Integer> LOOKUP_CACHE_TTL_SEC = ConfigOptions
-            .key("lookup.cache.ttl-sec")
-            .intType()
-            .defaultValue(-1);
 
     @Override
     public DynamicTableSource createDynamicTableSource(Context context) {
@@ -62,8 +40,8 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
         HashSet<ConfigOption<?>> requiredOptions = new HashSet<>();
-        requiredOptions.add(NODE_URLS);
-        requiredOptions.add(DEVICE);
+        requiredOptions.add(Options.NODE_URLS);
+        requiredOptions.add(Options.DEVICE);
 
         return requiredOptions;
     }
@@ -71,22 +49,29 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         HashSet<ConfigOption<?>> optionalOptions = new HashSet<>();
-        optionalOptions.add(USER);
-        optionalOptions.add(PASSWORD);
-        optionalOptions.add(LOOKUP_CACHE_MAX_ROWS);
-        optionalOptions.add(LOOKUP_CACHE_TTL_SEC);
+        optionalOptions.add(Options.USER);
+        optionalOptions.add(Options.PASSWORD);
+        optionalOptions.add(Options.LOOKUP_CACHE_MAX_ROWS);
+        optionalOptions.add(Options.LOOKUP_CACHE_TTL_SEC);
 
         return optionalOptions;
     }
 
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
-        return null;
+        FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
+        helper.validate();
+
+        ReadableConfig options = helper.getOptions();
+        validateOptions(options);
+
+        TableSchema schema = context.getCatalogTable().getSchema();
+        return new IoTDBDynamicTableSink(options, schema);
     }
 
     protected void validateOptions(ReadableConfig options) {
-        List<String> nodeUrls = Arrays.asList(options.get(NODE_URLS).toString().split(","));
-        String user = options.get(USER).toString();
-        String password = options.get(PASSWORD).toString();
+        List<String> nodeUrls = Arrays.asList(options.get(Options.NODE_URLS).toString().split(","));
+        String user = options.get(Options.USER).toString();
+        String password = options.get(Options.PASSWORD).toString();
     }
 }

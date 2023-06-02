@@ -1,12 +1,12 @@
-package org.apache.iotdb.flink.sql.test;
+package org.apache.iotdb.test;
 
-import org.apache.flink.connector.datagen.table.DataGenConnectorOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.*;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
-public class LookupTest {
+public class SinkTest {
     public static void main(String[] args) {
+        // setup environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
@@ -17,32 +17,34 @@ public class LookupTest {
 
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
 
+        // create data source table
         Schema dataGenTableSchema = Schema
                 .newBuilder()
-                .column("Time", DataTypes.BIGINT())
+                .column("Time_", DataTypes.BIGINT())
                 .column("voltage", DataTypes.FLOAT())
                 .build();
         TableDescriptor descriptor = TableDescriptor
                 .forConnector("datagen")
                 .schema(dataGenTableSchema)
                 .option("rows-per-second", "1")
-                .option("fields.Time.kind", "sequence")
-                .option("fields.Time.start", "1")
-                .option("fields.Time.end", "10000")
+                .option("fields.Time_.kind", "sequence")
+                .option("fields.Time_.start", "1")
+                .option("fields.Time_.end", "5")
                 .option("fields.voltage.min", "1")
                 .option("fields.voltage.max", "5")
                 .build();
         tableEnv.createTemporaryTable("dataGenTable", descriptor);
-
-        tableEnv.createTemporaryTable("printTable", TableDescriptor
-                .forConnector("print")
-                .schema(dataGenTableSchema)
-                .build());
-
         Table dataGenTable = tableEnv.from("dataGenTable");
 
-        TablePipeline pipeline = dataGenTable.insertInto("printTable");
-//        pipeline.printExplain();
-        pipeline.execute();
+        // create iotdb sink table
+        TableDescriptor iotdbDescriptor = TableDescriptor
+                .forConnector("IoTDB")
+                .schema(dataGenTableSchema)
+                .option("device", "root.test.flink.sink")
+                .build();
+        tableEnv.createTemporaryTable("iotdbSinkTable", iotdbDescriptor);
+
+        // insert data
+        dataGenTable.insertInto("iotdbSinkTable").execute();
     }
 }

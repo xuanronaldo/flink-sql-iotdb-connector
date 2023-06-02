@@ -6,6 +6,7 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.LookupTableSource;
 import org.apache.flink.table.connector.source.TableFunctionProvider;
 import org.apache.iotdb.flink.sql.provider.IoTDBLookupFunction;
+import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 
 public class IoTDBDynamicTableSource implements LookupTableSource {
     private final ReadableConfig options;
@@ -18,7 +19,7 @@ public class IoTDBDynamicTableSource implements LookupTableSource {
 
     @Override
     public LookupRuntimeProvider getLookupRuntimeProvider(LookupContext lookupContext) {
-        return TableFunctionProvider.of(new IoTDBLookupFunction(options, schema));
+        return TableFunctionProvider.of(new IoTDBLookupFunction(options, new SchemaWrapper(schema)));
     }
 
     @Override
