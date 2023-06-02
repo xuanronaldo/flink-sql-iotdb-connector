@@ -33,7 +33,7 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
         put(DataTypes.STRING(), TSDataType.TEXT);
     }};
 
-    private final Session SESSION;
+    private static Session session;
 
     public IoTDBSinkFunction(ReadableConfig options, SchemaWrapper schemaWrapper) throws IoTDBConnectionException {
         this.SCHEMA = schemaWrapper.getSchema();
@@ -46,13 +46,6 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
 
         DEVICE = options.get(Options.DEVICE);
 
-        SESSION = new Session
-                .Builder()
-                .nodeUrls(NODE_URLS)
-                .username(USER)
-                .password(PASSWORD)
-                .build();
-
         // get measurements and data types from schema
         MEASUREMENTS = SCHEMA.stream().map(field -> String.valueOf(field.f0)).collect(Collectors.toList());
         DATA_TYPES = SCHEMA.stream().map(field -> TYPE_MAP.get(field.f1)).collect(Collectors.toList());
@@ -61,25 +54,33 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
     @Override
     public void invoke(RowData value, Context context) throws Exception {
         // open the session if the session has not been opened
-        try {
-            SESSION.getTimeZone();
-        } catch (Exception e) {
-            SESSION.open(false);
+        if (session == null) {
+            session = new Session
+                    .Builder()
+                    .nodeUrls(NODE_URLS)
+                    .username(USER)
+                    .password(PASSWORD)
+                    .build();
+            session.open(false);
         }
+        // load data from RowData
         long timestamp = value.getLong(0);
+        ArrayList<String> measurements = new ArrayList<>();
+        ArrayList<TSDataType> dataTypes = new ArrayList<>();
         ArrayList<Object> values = new ArrayList<>();
-        for (int i = 1; i < MEASUREMENTS.size(); i++) {
-            values.add(Utils.getValue(value, SCHEMA.get(i).f1, i));
+        for (int i = 0; i < MEASUREMENTS.size(); i++) {
+            measurements.add(MEASUREMENTS.get(i));
+            dataTypes.add(DATA_TYPES.get(i));
+            values.add(Utils.getValue(value, SCHEMA.get(i).f1, i+1));
         }
-        // String var1, long var2, List<String> var4, List<TSDataType> var5, List<Object> var6
-//        session.insertRecord();
-
+        // insert data
+        session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
     }
 
     @Override
     public void finish() throws Exception {
-        if (SESSION != null) {
-            SESSION.close();
+        if (session != null) {
+            session.close();
         }
     }
 }

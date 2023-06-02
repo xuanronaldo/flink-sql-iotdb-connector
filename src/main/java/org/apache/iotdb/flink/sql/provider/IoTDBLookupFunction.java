@@ -37,7 +37,7 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
     private final String PASSWORD;
     private final String DEVICE;
     private final List<String> MEASUREMENTS;
-    private final Session SESSION;
+    private Session session;
 
     private transient Cache<RowData, RowData> cache;
 
@@ -57,20 +57,18 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         DEVICE = options.get(Options.DEVICE);
 
         MEASUREMENTS = SCHEMA.stream().map(field -> String.valueOf(field.f0)).collect(Collectors.toList());
-
-        SESSION = new Session
-                .Builder()
-                .nodeUrls(NODE_URLS)
-                .username(USER)
-                .password(PASSWORD)
-                .build();
     }
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-
-        SESSION.open(false);
+        session = new Session
+                .Builder()
+                .nodeUrls(NODE_URLS)
+                .username(USER)
+                .password(PASSWORD)
+                .build();
+        session.open(false);
 
         if (CACHE_MAX_ROWS > 0 && CACHE_TTL_SEC > 0) {
             cache = CacheBuilder.newBuilder()
@@ -85,8 +83,8 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         if (cache != null) {
             cache.invalidateAll();
         }
-        if (SESSION != null) {
-            SESSION.close();
+        if (session != null) {
+            session.close();
         }
         super.close();
     }
@@ -104,7 +102,7 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         long timestamp = lookupKey.getLong(0);
 
         String sql = String.format("SELECT %s FROM %s WHERE TIME=%d", StringUtils.join(MEASUREMENTS, ','), DEVICE, timestamp);
-        SessionDataSet dataSet = SESSION.executeQueryStatement(sql);
+        SessionDataSet dataSet = session.executeQueryStatement(sql);
         List<String> columnNames = dataSet.getColumnNames();
         columnNames.remove("Time");
         RowRecord record = dataSet.next();
@@ -113,7 +111,7 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         ArrayList<Object> values = new ArrayList<>();
         values.add(timestamp);
         for (Tuple2<String, DataType> filed : SCHEMA) {
-            values.add(Utils.getValue(fields.get(columnNames.indexOf(DEVICE+'.'+filed.f0)), filed.f1));
+            values.add(Utils.getValue(fields.get(columnNames.indexOf(DEVICE + '.' + filed.f0)), filed.f1));
         }
 
         GenericRowData rowData = GenericRowData.of(values.toArray());
