@@ -55,7 +55,6 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
         HashSet<ConfigOption<?>> requiredOptions = new HashSet<>();
-        requiredOptions.add(Options.NODE_URLS);
         requiredOptions.add(Options.DEVICE);
 
         return requiredOptions;
@@ -64,6 +63,7 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         HashSet<ConfigOption<?>> optionalOptions = new HashSet<>();
+        optionalOptions.add(Options.NODE_URLS);
         optionalOptions.add(Options.USER);
         optionalOptions.add(Options.PASSWORD);
         optionalOptions.add(Options.LOOKUP_CACHE_MAX_ROWS);
@@ -98,7 +98,7 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
                 throw new IllegalIoTDBPathException(String.format("The field name `%s` contains character `.`, it's not allowed in IoTDB.", fieldName));
             }
             if (Utils.isNumeric(fieldName)) {
-                throw new IllegalIoTDBPathException(String.format("The field name `%s` is a purely digital, it's not allowed in IoTDB.", fieldName));
+                throw new IllegalIoTDBPathException(String.format("The field name `%s` is a purely number, it's not allowed in IoTDB.", fieldName));
             }
         }
 
@@ -114,15 +114,19 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
         }
         for (String s : device.split("\\.")) {
             if (Utils.isNumeric(s)) {
-                throw new IllegalIoTDBPathException(String.format("The option `device` contains a purely digital path: %s, it's not allowed in IoTDB.", s));
+                throw new IllegalIoTDBPathException(String.format("The option `device` contains a purely number path: `%s`, it's not allowed in IoTDB.", s));
             }
         }
 
         List<String> nodeUrls = Arrays.asList(options.get(Options.NODE_URLS).toString().split(","));
         for (String nodeUrl : nodeUrls) {
+            nodeUrl = nodeUrl.strip();
             String[] split = nodeUrl.split(":");
-            if (split.length != 2 || !Utils.isNumeric(split[1])){
-                throw new IllegalUrlPathException("Every URL node must be in the format of `host:port`.");
+            if (split.length != 2){
+                throw new IllegalUrlPathException("Every node's URL must be in the format of `host:port`.");
+            }
+            if (!Utils.isNumeric(split[1]) && Integer.valueOf(split[1]) > 65535 && Integer.valueOf(split[1]) < 1) {
+                throw new IllegalUrlPathException("The port must be a number, and it could not be greater than 65535 or less than 1.");
             }
         }
     }
