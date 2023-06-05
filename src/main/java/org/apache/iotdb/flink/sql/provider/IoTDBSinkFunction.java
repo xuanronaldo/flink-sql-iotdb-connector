@@ -52,7 +52,7 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
     }
 
     @Override
-    public void invoke(RowData value, Context context) throws Exception {
+    public void invoke(RowData rowData, Context context) throws Exception {
         // open the session if the session has not been opened
         if (session == null) {
             session = new Session
@@ -64,15 +64,19 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
             session.open(false);
         }
         // load data from RowData
-        if (value.getRowKind().equals(RowKind.INSERT) || value.getRowKind().equals(RowKind.UPDATE_AFTER)) {
-            long timestamp = value.getLong(0);
+        if (rowData.getRowKind().equals(RowKind.INSERT) || rowData.getRowKind().equals(RowKind.UPDATE_AFTER)) {
+            long timestamp = rowData.getLong(0);
             ArrayList<String> measurements = new ArrayList<>();
             ArrayList<TSDataType> dataTypes = new ArrayList<>();
             ArrayList<Object> values = new ArrayList<>();
             for (int i = 0; i < MEASUREMENTS.size(); i++) {
+                Object value = Utils.getValue(rowData, SCHEMA.get(i).f1, i + 1);
+                if (value == null) {
+                    continue;
+                }
                 measurements.add(MEASUREMENTS.get(i));
                 dataTypes.add(DATA_TYPES.get(i));
-                values.add(Utils.getValue(value, SCHEMA.get(i).f1, i + 1));
+                values.add(value);
             }
             // insert data
             if (ALIGNED) {
@@ -80,14 +84,14 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
             } else {
                 session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
             }
-        } else if (value.getRowKind().equals(RowKind.DELETE)) {
+        } else if (rowData.getRowKind().equals(RowKind.DELETE)) {
             ArrayList<String> paths = new ArrayList<>() {{
                 for (String measurement : MEASUREMENTS) {
                     add(String.format("%s.%s", DEVICE, measurement));
                 }
             }};
-            session.deleteData(paths, value.getLong(0));
-        } else if (value.getRowKind().equals(RowKind.UPDATE_BEFORE)) {
+            session.deleteData(paths, rowData.getLong(0));
+        } else if (rowData.getRowKind().equals(RowKind.UPDATE_BEFORE)) {
             // do nothing
         }
     }

@@ -28,21 +28,26 @@ public class Utils {
     }
 
     public static Object getValue(RowData value, DataType dataType, int index) {
-        if (dataType.equals(DataTypes.INT())) {
-            return value.getInt(index);
-        } else if (dataType.equals(DataTypes.BIGINT())) {
-            return value.getLong(index);
-        } else if (dataType.equals(DataTypes.FLOAT())) {
-            return value.getFloat(index);
-        } else if (dataType.equals(DataTypes.DOUBLE())) {
-            return value.getDouble(index);
-        } else if (dataType.equals(DataTypes.BOOLEAN())) {
-            return value.getBoolean(index);
-        } else if (dataType.equals(DataTypes.STRING())) {
-            return value.getString(index);
-        } else {
-            throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType);
+        try {
+            if (dataType.equals(DataTypes.INT())) {
+                return value.getInt(index);
+            } else if (dataType.equals(DataTypes.BIGINT())) {
+                return value.getLong(index);
+            } else if (dataType.equals(DataTypes.FLOAT())) {
+                return value.getFloat(index);
+            } else if (dataType.equals(DataTypes.DOUBLE())) {
+                return value.getDouble(index);
+            } else if (dataType.equals(DataTypes.BOOLEAN())) {
+                return value.getBoolean(index);
+            } else if (dataType.equals(DataTypes.STRING())) {
+                return value.getString(index);
+            } else {
+                throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType);
+            }
+        } catch (NullPointerException e) {
+            return null;
         }
+
     }
 
     public static boolean isNumeric(String s) {

@@ -106,6 +106,16 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         List<String> columnNames = dataSet.getColumnNames();
         columnNames.remove("Time");
         RowRecord record = dataSet.next();
+        if (record == null) {
+            ArrayList<Object> values = new ArrayList<>();
+            values.add(timestamp);
+            for (int i = 0; i < SCHEMA.size(); i++) {
+                values.add(null);
+            }
+            GenericRowData rowData = GenericRowData.of(values.toArray());
+            collect(rowData);
+            return;
+        }
         List<Field> fields = record.getFields();
 
         ArrayList<Object> values = new ArrayList<>();
