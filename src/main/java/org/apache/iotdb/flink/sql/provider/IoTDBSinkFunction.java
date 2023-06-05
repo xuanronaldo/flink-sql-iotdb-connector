@@ -22,6 +22,7 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
     private final String USER;
     private final String PASSWORD;
     private final String DEVICE;
+    private final Boolean ALIGNED;
     private final List<String> MEASUREMENTS;
     private final List<TSDataType> DATA_TYPES;
     private final Map<DataType, TSDataType> TYPE_MAP = new HashMap<>() {{
@@ -36,16 +37,14 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
     private static Session session;
 
     public IoTDBSinkFunction(ReadableConfig options, SchemaWrapper schemaWrapper) throws IoTDBConnectionException {
+        // get schema
         this.SCHEMA = schemaWrapper.getSchema();
-
+        // get options
         NODE_URLS = Arrays.asList(options.get(Options.NODE_URLS).split(","));
-
         USER = options.get(Options.USER);
-
         PASSWORD = options.get(Options.PASSWORD);
-
         DEVICE = options.get(Options.DEVICE);
-
+        ALIGNED = options.get(Options.ALIGNED);
         // get measurements and data types from schema
         MEASUREMENTS = SCHEMA.stream().map(field -> String.valueOf(field.f0)).collect(Collectors.toList());
         DATA_TYPES = SCHEMA.stream().map(field -> TYPE_MAP.get(field.f1)).collect(Collectors.toList());
@@ -71,10 +70,14 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
         for (int i = 0; i < MEASUREMENTS.size(); i++) {
             measurements.add(MEASUREMENTS.get(i));
             dataTypes.add(DATA_TYPES.get(i));
-            values.add(Utils.getValue(value, SCHEMA.get(i).f1, i+1));
+            values.add(Utils.getValue(value, SCHEMA.get(i).f1, i + 1));
         }
         // insert data
-        session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
+        if (ALIGNED) {
+            session.insertAlignedRecord(DEVICE, timestamp, measurements, dataTypes, values);
+        } else {
+            session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
+        }
     }
 
     @Override

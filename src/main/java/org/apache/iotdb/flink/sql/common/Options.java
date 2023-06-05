@@ -28,4 +28,9 @@ public class Options {
             .key("lookup.cache.ttl-sec")
             .intType()
             .defaultValue(-1);
+
+    public static final ConfigOption<Boolean> ALIGNED = ConfigOptions
+            .key("aligned")
+            .booleanType()
+            .defaultValue(false);
 }

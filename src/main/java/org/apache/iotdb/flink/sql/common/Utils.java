@@ -3,12 +3,13 @@ package org.apache.iotdb.flink.sql.common;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
+import org.apache.iotdb.flink.sql.exception.UnsupportedDataTypeException;
 import org.apache.iotdb.tsfile.read.common.Field;
 
-import javax.activation.UnsupportedDataTypeException;
+import java.util.regex.Pattern;
 
 public class Utils {
-    public static Object getValue(Field value, DataType dataType) throws UnsupportedDataTypeException {
+    public static Object getValue(Field value, DataType dataType) {
         if (dataType.equals(DataTypes.INT())) {
             return value.getIntV();
         } else if (dataType.equals(DataTypes.BIGINT())) {
@@ -26,7 +27,7 @@ public class Utils {
         }
     }
 
-    public static Object getValue(RowData value, DataType dataType, int index) throws UnsupportedDataTypeException {
+    public static Object getValue(RowData value, DataType dataType, int index) {
         if (dataType.equals(DataTypes.INT())) {
             return value.getInt(index);
         } else if (dataType.equals(DataTypes.BIGINT())) {
@@ -42,5 +43,10 @@ public class Utils {
         } else {
             throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType);
         }
+    }
+
+    public static boolean isNumeric(String s) {
+        Pattern pattern = Pattern.compile("[0-9]*");
+        return pattern.matcher(s).matches();
     }
 }

@@ -89,7 +89,7 @@ public class IoTDBLookupFunction extends TableFunction<RowData> {
         super.close();
     }
 
-    public void eval(Object obj) throws IoTDBConnectionException, StatementExecutionException, UnsupportedDataTypeException {
+    public void eval(Object obj) throws IoTDBConnectionException, StatementExecutionException {
         RowData lookupKey = GenericRowData.of(obj);
         if (cache != null) {
             RowData cacheRow = cache.getIfPresent(lookupKey);
