@@ -6,6 +6,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.types.RowKind;
 import org.apache.iotdb.flink.sql.common.Options;
 import org.apache.iotdb.flink.sql.common.Utils;
 import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
@@ -63,20 +64,31 @@ public class IoTDBSinkFunction implements SinkFunction<RowData> {
             session.open(false);
         }
         // load data from RowData
-        long timestamp = value.getLong(0);
-        ArrayList<String> measurements = new ArrayList<>();
-        ArrayList<TSDataType> dataTypes = new ArrayList<>();
-        ArrayList<Object> values = new ArrayList<>();
-        for (int i = 0; i < MEASUREMENTS.size(); i++) {
-            measurements.add(MEASUREMENTS.get(i));
-            dataTypes.add(DATA_TYPES.get(i));
-            values.add(Utils.getValue(value, SCHEMA.get(i).f1, i + 1));
-        }
-        // insert data
-        if (ALIGNED) {
-            session.insertAlignedRecord(DEVICE, timestamp, measurements, dataTypes, values);
-        } else {
-            session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
+        if (value.getRowKind().equals(RowKind.INSERT) || value.getRowKind().equals(RowKind.UPDATE_AFTER)) {
+            long timestamp = value.getLong(0);
+            ArrayList<String> measurements = new ArrayList<>();
+            ArrayList<TSDataType> dataTypes = new ArrayList<>();
+            ArrayList<Object> values = new ArrayList<>();
+            for (int i = 0; i < MEASUREMENTS.size(); i++) {
+                measurements.add(MEASUREMENTS.get(i));
+                dataTypes.add(DATA_TYPES.get(i));
+                values.add(Utils.getValue(value, SCHEMA.get(i).f1, i + 1));
+            }
+            // insert data
+            if (ALIGNED) {
+                session.insertAlignedRecord(DEVICE, timestamp, measurements, dataTypes, values);
+            } else {
+                session.insertRecord(DEVICE, timestamp, measurements, dataTypes, values);
+            }
+        } else if (value.getRowKind().equals(RowKind.DELETE)) {
+            ArrayList<String> paths = new ArrayList<>() {{
+                for (String measurement : MEASUREMENTS) {
+                    add(String.format("%s.%s", DEVICE, measurement));
+                }
+            }};
+            session.deleteData(paths, value.getLong(0));
+        } else if (value.getRowKind().equals(RowKind.UPDATE_BEFORE)) {
+            // do nothing
         }
     }
 

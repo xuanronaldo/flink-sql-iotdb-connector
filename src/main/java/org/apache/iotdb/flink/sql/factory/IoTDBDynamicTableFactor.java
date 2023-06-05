@@ -13,6 +13,7 @@ import org.apache.flink.table.types.DataType;
 import org.apache.iotdb.flink.sql.common.Options;
 import org.apache.iotdb.flink.sql.common.Utils;
 import org.apache.iotdb.flink.sql.exception.IllegalIoTDBPathException;
+import org.apache.iotdb.flink.sql.exception.IllegalSchemaException;
 import org.apache.iotdb.flink.sql.exception.IllegalUrlPathException;
 import org.apache.iotdb.flink.sql.exception.UnsupportedDataTypeException;
 import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSink;
@@ -87,6 +88,11 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
 
     protected void validate(ReadableConfig options, TableSchema schema) {
         String[] fieldNames = schema.getFieldNames();
+        DataType[] fieldDataTypes = schema.getFieldDataTypes();
+
+        if (!"Time_".equals(fieldNames[0]) || !fieldDataTypes[0].equals(DataTypes.BIGINT())) {
+            throw new IllegalSchemaException("The first field's name must be `Time_`, and its data type must be BIGINT.");
+        }
         for (String fieldName : fieldNames) {
             if (fieldName.contains("\\.")) {
                 throw new IllegalIoTDBPathException(String.format("The field name `%s` contains character `.`, it's not allowed in IoTDB.", fieldName));
@@ -96,7 +102,6 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
             }
         }
 
-        DataType[] fieldDataTypes = schema.getFieldDataTypes();
         for (DataType fieldDataType : fieldDataTypes) {
             if (!supportedDataTypes.contains(fieldDataType)) {
                 throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + fieldDataType);
@@ -119,7 +124,6 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
             if (split.length != 2 || !Utils.isNumeric(split[1])){
                 throw new IllegalUrlPathException("Every URL node must be in the format of `host:port`.");
             }
-
         }
     }
 }

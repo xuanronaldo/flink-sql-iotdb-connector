@@ -24,6 +24,9 @@ public class IoTDBDynamicTableSink  implements DynamicTableSink {
     public ChangelogMode getChangelogMode(ChangelogMode changelogMode) {
         return ChangelogMode.newBuilder()
                 .addContainedKind(RowKind.INSERT)
+                .addContainedKind(RowKind.DELETE)
+                .addContainedKind(RowKind.UPDATE_BEFORE)
+                .addContainedKind(RowKind.UPDATE_AFTER)
                 .build();
     }
 
