@@ -2,13 +2,13 @@ package org.apache.iotdb.flink.sql.source;
 
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.connector.source.DynamicTableSource;
-import org.apache.flink.table.connector.source.LookupTableSource;
-import org.apache.flink.table.connector.source.TableFunctionProvider;
+import org.apache.flink.table.connector.ChangelogMode;
+import org.apache.flink.table.connector.source.*;
 import org.apache.iotdb.flink.sql.provider.IoTDBLookupFunction;
+import org.apache.iotdb.flink.sql.provider.IoTDBScanTableFunction;
 import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 
-public class IoTDBDynamicTableSource implements LookupTableSource {
+public class IoTDBDynamicTableSource implements LookupTableSource, ScanTableSource {
     private final ReadableConfig options;
     private final TableSchema schema;
 
@@ -30,5 +30,15 @@ public class IoTDBDynamicTableSource implements LookupTableSource {
     @Override
     public String asSummaryString() {
         return "IoTDB Dynamic Table Source";
+    }
+
+    @Override
+    public ChangelogMode getChangelogMode() {
+        return ChangelogMode.insertOnly();
+    }
+
+    @Override
+    public ScanRuntimeProvider getScanRuntimeProvider(ScanContext scanContext) {
+        return InputFormatProvider.of(new IoTDBScanTableFunction(options, new SchemaWrapper(schema)));
     }
 }

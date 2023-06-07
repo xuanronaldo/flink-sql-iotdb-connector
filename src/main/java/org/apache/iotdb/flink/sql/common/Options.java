@@ -20,6 +20,10 @@ public class Options {
             .key("device")
             .stringType()
             .noDefaultValue();
+    public static final ConfigOption<Boolean> ALIGNED = ConfigOptions
+            .key("aligned")
+            .booleanType()
+            .defaultValue(false);
     public static final ConfigOption<Integer> LOOKUP_CACHE_MAX_ROWS = ConfigOptions
             .key("lookup.cache.max-rows")
             .intType()
@@ -28,9 +32,12 @@ public class Options {
             .key("lookup.cache.ttl-sec")
             .intType()
             .defaultValue(-1);
-
-    public static final ConfigOption<Boolean> ALIGNED = ConfigOptions
-            .key("aligned")
-            .booleanType()
-            .defaultValue(false);
+    public static final ConfigOption<Long> SCAN_LOWER_BOUND = ConfigOptions
+            .key("scan.lower-bound")
+            .longType()
+            .defaultValue(-1L);
+    public static final ConfigOption<Long> SCAN_UPPER_BOUND = ConfigOptions
+            .key("scan.upper-bound")
+            .longType()
+            .defaultValue(-1L);
 }

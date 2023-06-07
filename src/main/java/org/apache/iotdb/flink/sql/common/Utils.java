@@ -1,14 +1,35 @@
 package org.apache.iotdb.flink.sql.common;
 
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.iotdb.flink.sql.exception.UnsupportedDataTypeException;
 import org.apache.iotdb.tsfile.read.common.Field;
+import org.apache.iotdb.tsfile.read.common.RowRecord;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class Utils {
+    public static Object getValue(Field value, String dataType) {
+        if ("INT32".equals(dataType)) {
+            return value.getIntV();
+        } else if ("INT64".equals(dataType)) {
+            return value.getLongV();
+        } else if ("FLOAT".equals(dataType)) {
+            return value.getFloatV();
+        } else if ("DOUBLE".equals(dataType)) {
+            return value.getDoubleV();
+        } else if ("BOOLEAN".equals(dataType)) {
+            return value.getBoolV();
+        } else if ("TEXT".equals(dataType)) {
+            return value.getStringValue();
+        } else {
+            throw new UnsupportedDataTypeException("IoTDB don't support the data type: " + dataType);
+        }
+    }
     public static Object getValue(Field value, DataType dataType) {
         if (dataType.equals(DataTypes.INT())) {
             return value.getIntV();
@@ -53,5 +74,16 @@ public class Utils {
     public static boolean isNumeric(String s) {
         Pattern pattern = Pattern.compile("[0-9]*");
         return pattern.matcher(s).matches();
+    }
+
+    public static RowData convert(RowRecord record, List<String> columnTypes) {
+        ArrayList<Object> values = new ArrayList<>();
+        values.add(record.getTimestamp());
+        List<Field> fields = record.getFields();
+        for (int i = 0; i < fields.size(); i++) {
+            values.add(getValue(fields.get(i), columnTypes.get(i)));
+        }
+        GenericRowData rowData = GenericRowData.of(values);
+        return rowData;
     }
 }
