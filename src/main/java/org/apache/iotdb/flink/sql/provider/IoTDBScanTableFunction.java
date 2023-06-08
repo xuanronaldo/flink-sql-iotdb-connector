@@ -7,6 +7,7 @@ import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.table.data.RowData;
@@ -35,7 +36,6 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
     private Session session;
     private SessionDataSet dataSet;
     private List<String> columnTypes;
-    private transient boolean hasNext;
 
     public IoTDBScanTableFunction(ReadableConfig options, SchemaWrapper schemaWrapper) {
         OPTIONS = options;
@@ -58,7 +58,7 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
 
     @Override
     public InputSplit[] createInputSplits(int i) throws IOException {
-        return new InputSplit[0];
+        return new GenericInputSplit[] {new GenericInputSplit(1, 1)};
     }
 
     @Override
@@ -96,7 +96,6 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
         try {
             dataSet = session.executeQueryStatement(sql);
             columnTypes = dataSet.getColumnTypes();
-            hasNext = dataSet.hasNext();
         } catch (StatementExecutionException | IoTDBConnectionException e) {
             throw new RuntimeException(e);
         }
@@ -104,14 +103,15 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
 
     @Override
     public boolean reachedEnd() throws IOException {
-        return !hasNext;
+        try {
+            return !dataSet.hasNext();
+        } catch (StatementExecutionException | IoTDBConnectionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public RowData nextRecord(RowData rowData) throws IOException {
-        if (!hasNext) {
-            return null;
-        }
         try {
             RowRecord record = dataSet.next();
             return Utils.convert(record, columnTypes);
