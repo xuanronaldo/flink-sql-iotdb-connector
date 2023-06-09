@@ -1,8 +1,6 @@
 package org.apache.iotdb.test;
 
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.*;
-import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
 public class SinkTest {
     public static void main(String[] args) {

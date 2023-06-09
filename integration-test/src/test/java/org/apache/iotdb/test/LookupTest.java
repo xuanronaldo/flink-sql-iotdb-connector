@@ -1,24 +1,16 @@
 package org.apache.iotdb.test;
 
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.*;
-import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-import org.apache.flink.table.functions.TemporalTableFunction;
-
-import static org.apache.flink.table.api.Expressions.$;
 
 public class LookupTest {
     public static void main(String[] args) {
         // setup environment
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
                 .inStreamingMode()
                 .build();
 
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
+        TableEnvironment tableEnv = TableEnvironment.create(settings);
 
         // register left table
         Schema dataGenTableSchema = Schema
@@ -43,7 +35,6 @@ public class LookupTest {
                 .newBuilder()
                 .column("Time_", DataTypes.BIGINT())
                 .column("amperage", DataTypes.FLOAT())
-                .column("amperage1", DataTypes.FLOAT())
                 .build();
 
         TableDescriptor iotdbDescriptor = TableDescriptor
@@ -56,7 +47,7 @@ public class LookupTest {
         tableEnv.createTemporaryTable("iotdbTable", iotdbDescriptor);
 
         // join
-        String sql = "SELECT l.Time_, l.voltage, r.amperage, r.amperage1 " +
+        String sql = "SELECT l.Time_, l.voltage, r.amperage " +
                 "FROM (select *,PROCTIME() as proc_time from dataGenTable) AS l " +
                 "JOIN iotdbTable FOR SYSTEM_TIME AS OF l.proc_time AS r " +
                 "ON l.Time_ = r.Time_";
