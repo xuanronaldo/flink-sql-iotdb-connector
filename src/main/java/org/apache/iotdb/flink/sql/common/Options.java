@@ -32,12 +32,12 @@ public class Options {
             .key("lookup.cache.ttl-sec")
             .intType()
             .defaultValue(-1);
-    public static final ConfigOption<Long> SCAN_LOWER_BOUND = ConfigOptions
-            .key("scan.lower-bound")
+    public static final ConfigOption<Long> SCAN_BOUNDED_LOWER_BOUND = ConfigOptions
+            .key("scan.bounded.lower-bound")
             .longType()
             .defaultValue(-1L);
-    public static final ConfigOption<Long> SCAN_UPPER_BOUND = ConfigOptions
-            .key("scan.upper-bound")
+    public static final ConfigOption<Long> SCAN_BOUNDED_UPPER_BOUND = ConfigOptions
+            .key("scan.bounded.upper-bound")
             .longType()
             .defaultValue(-1L);
 }

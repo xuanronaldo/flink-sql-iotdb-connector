@@ -12,10 +12,7 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.types.DataType;
 import org.apache.iotdb.flink.sql.common.Options;
 import org.apache.iotdb.flink.sql.common.Utils;
-import org.apache.iotdb.flink.sql.exception.IllegalIoTDBPathException;
-import org.apache.iotdb.flink.sql.exception.IllegalSchemaException;
-import org.apache.iotdb.flink.sql.exception.IllegalUrlPathException;
-import org.apache.iotdb.flink.sql.exception.UnsupportedDataTypeException;
+import org.apache.iotdb.flink.sql.exception.*;
 import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSink;
 import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSource;
 
@@ -128,6 +125,12 @@ public class IoTDBDynamicTableFactor implements DynamicTableSourceFactory, Dynam
             if (!Utils.isNumeric(split[1]) && Integer.valueOf(split[1]) > 65535 && Integer.valueOf(split[1]) < 1) {
                 throw new IllegalUrlPathException("The port must be a number, and it could not be greater than 65535 or less than 1.");
             }
+        }
+
+        Long lowerBound = options.get(Options.SCAN_BOUNDED_LOWER_BOUND);
+        Long upperBound = options.get(Options.SCAN_BOUNDED_UPPER_BOUND);
+        if (lowerBound > 0L && upperBound > 0L && upperBound < lowerBound) {
+            throw new IllegalOptionException("The value of option `scan.bounded.lower-bound` could not be greater than the value of option `scan.bounded.upper-bound`.");
         }
     }
 }

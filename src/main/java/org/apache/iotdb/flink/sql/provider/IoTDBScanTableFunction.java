@@ -41,8 +41,8 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
         OPTIONS = options;
         SCHEMA = schemaWrapper.getSchema();
         DEVICE = options.get(Options.DEVICE);
-        LOWER_BOUND = options.get(Options.SCAN_LOWER_BOUND);
-        UPPER_BOUND = options.get(Options.SCAN_UPPER_BOUND);
+        LOWER_BOUND = options.get(Options.SCAN_BOUNDED_LOWER_BOUND);
+        UPPER_BOUND = options.get(Options.SCAN_BOUNDED_UPPER_BOUND);
         MEASUREMENTS = SCHEMA.stream().map(field -> String.valueOf(field.f0)).collect(Collectors.toList());
     }
 
@@ -87,11 +87,11 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
         if (LOWER_BOUND < 0L && UPPER_BOUND < 0L) {
             sql = String.format("SELECT %s FROM %s", String.join(",", MEASUREMENTS), DEVICE);
         } else if (LOWER_BOUND < 0L && UPPER_BOUND > 0L) {
-            sql = String.format("SELECT %s FROM %s WHERE TIME < %d", String.join(",", MEASUREMENTS), DEVICE, UPPER_BOUND);
+            sql = String.format("SELECT %s FROM %s WHERE TIME <= %d", String.join(",", MEASUREMENTS), DEVICE, UPPER_BOUND);
         } else if (LOWER_BOUND > 0L && UPPER_BOUND < 0L) {
-            sql = String.format("SELECT %s FROM %s WHERE TIME > %d", String.join(",", MEASUREMENTS), DEVICE, LOWER_BOUND);
+            sql = String.format("SELECT %s FROM %s WHERE TIME >= %d", String.join(",", MEASUREMENTS), DEVICE, LOWER_BOUND);
         } else {
-            sql = String.format("SELECT %s FROM %s WHERE TIME > %d AND TIME < %d", String.join(",", MEASUREMENTS), DEVICE, LOWER_BOUND, UPPER_BOUND);
+            sql = String.format("SELECT %s FROM %s WHERE TIME >= %d AND TIME <= %d", String.join(",", MEASUREMENTS), DEVICE, LOWER_BOUND, UPPER_BOUND);
         }
         try {
             dataSet = session.executeQueryStatement(sql);

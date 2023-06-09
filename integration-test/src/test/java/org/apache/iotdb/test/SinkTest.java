@@ -7,15 +7,12 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 public class SinkTest {
     public static void main(String[] args) {
         // setup environment
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
                 .inStreamingMode()
                 .build();
 
-        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
+        TableEnvironment tableEnv = TableEnvironment.create(settings);
 
         // create data source table
         Schema dataGenTableSchema = Schema

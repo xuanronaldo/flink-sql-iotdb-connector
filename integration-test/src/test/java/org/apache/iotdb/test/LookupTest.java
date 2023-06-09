@@ -61,7 +61,7 @@ public class LookupTest {
                 "JOIN iotdbTable FOR SYSTEM_TIME AS OF l.proc_time AS r " +
                 "ON l.Time_ = r.Time_";
         tableEnv.sqlQuery(sql)
-                .execute().
-                print();
+                .execute()
+                .print();
     }
 }

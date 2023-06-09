@@ -6,7 +6,7 @@ public class ScanTest {
     public static void main(String[] args) throws Exception {
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
-                .inBatchMode()
+                .inStreamingMode()
                 .build();
         TableEnvironment tableEnv = TableEnvironment.create(settings);
 
