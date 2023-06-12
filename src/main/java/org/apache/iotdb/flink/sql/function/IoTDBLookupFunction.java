@@ -1,11 +1,10 @@
-package org.apache.iotdb.flink.sql.provider;
+package org.apache.iotdb.flink.sql.function;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.shaded.curator5.com.google.common.cache.Cache;
 import org.apache.flink.shaded.curator5.com.google.common.cache.CacheBuilder;
-import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.functions.FunctionContext;
@@ -21,7 +20,6 @@ import org.apache.iotdb.session.Session;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
 
-import javax.activation.UnsupportedDataTypeException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

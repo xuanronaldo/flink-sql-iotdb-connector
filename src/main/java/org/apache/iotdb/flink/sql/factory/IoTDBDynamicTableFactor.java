@@ -13,8 +13,8 @@ import org.apache.flink.table.types.DataType;
 import org.apache.iotdb.flink.sql.common.Options;
 import org.apache.iotdb.flink.sql.common.Utils;
 import org.apache.iotdb.flink.sql.exception.*;
-import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSink;
-import org.apache.iotdb.flink.sql.source.IoTDBDynamicTableSource;
+import org.apache.iotdb.flink.sql.provider.IoTDBDynamicTableSink;
+import org.apache.iotdb.flink.sql.provider.IoTDBDynamicTableSource;
 
 import java.util.Arrays;
 import java.util.HashSet;

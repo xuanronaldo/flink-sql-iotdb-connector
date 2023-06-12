@@ -1,4 +1,4 @@
-package org.apache.iotdb.flink.sql.provider;
+package org.apache.iotdb.flink.sql.function;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.ReadableConfig;

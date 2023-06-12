@@ -1,4 +1,4 @@
-package org.apache.iotdb.flink.sql.source;
+package org.apache.iotdb.flink.sql.provider;
 
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.api.TableSchema;
@@ -6,7 +6,7 @@ import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkFunctionProvider;
 import org.apache.flink.types.RowKind;
-import org.apache.iotdb.flink.sql.provider.IoTDBSinkFunction;
+import org.apache.iotdb.flink.sql.function.IoTDBSinkFunction;
 import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 
