@@ -7,39 +7,37 @@ public class SinkTest {
         // setup environment
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
-                .inStreamingMode()
+                .inBatchMode()
                 .build();
 
         TableEnvironment tableEnv = TableEnvironment.create(settings);
 
-        // create data source table
-        Schema dataGenTableSchema = Schema
+        // create source table
+        Schema schema = Schema
                 .newBuilder()
                 .column("Time_", DataTypes.BIGINT())
+                .column("amperage", DataTypes.FLOAT())
                 .column("voltage", DataTypes.FLOAT())
                 .build();
-        TableDescriptor descriptor = TableDescriptor
-                .forConnector("datagen")
-                .schema(dataGenTableSchema)
-                .option("rows-per-second", "1")
-                .option("fields.Time_.kind", "sequence")
-                .option("fields.Time_.start", "1")
-                .option("fields.Time_.end", "5")
-                .option("fields.voltage.min", "1")
-                .option("fields.voltage.max", "5")
-                .build();
-        tableEnv.createTemporaryTable("dataGenTable", descriptor);
-        Table dataGenTable = tableEnv.from("dataGenTable");
 
-        // create iotdb sink table
+        TableDescriptor sourceDescriptor = TableDescriptor
+                .forConnector("IoTDB")
+                .schema(schema)
+                .option("nodeUrls", "127.0.0.1:6667")
+                .option("device", "root.test.flink.sink")
+                .build();
+        tableEnv.createTemporaryTable("sourceTable", sourceDescriptor);
+        Table sourceTable = tableEnv.from("sourceTable");
+
+        // create sink table
         TableDescriptor iotdbDescriptor = TableDescriptor
                 .forConnector("IoTDB")
-                .schema(dataGenTableSchema)
+                .schema(schema)
                 .option("device", "root.test.flink.sink")
                 .build();
         tableEnv.createTemporaryTable("iotdbSinkTable", iotdbDescriptor);
 
         // insert data
-        dataGenTable.insertInto("iotdbSinkTable").execute();
+        sourceTable.insertInto("iotdbSinkTable").execute();
     }
 }
