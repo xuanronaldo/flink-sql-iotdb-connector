@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit> {
+public class IoTDBBoundedScanFunction extends RichInputFormat<RowData, InputSplit> {
     private final ReadableConfig OPTIONS;
     private final List<Tuple2<String, DataType>> SCHEMA;
     private final String DEVICE;
@@ -37,7 +37,7 @@ public class IoTDBScanTableFunction extends RichInputFormat<RowData, InputSplit>
     private SessionDataSet dataSet;
     private List<String> columnTypes;
 
-    public IoTDBScanTableFunction(ReadableConfig options, SchemaWrapper schemaWrapper) {
+    public IoTDBBoundedScanFunction(ReadableConfig options, SchemaWrapper schemaWrapper) {
         OPTIONS = options;
         SCHEMA = schemaWrapper.getSchema();
         DEVICE = options.get(Options.DEVICE);

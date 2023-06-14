@@ -5,7 +5,7 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.source.*;
 import org.apache.iotdb.flink.sql.function.IoTDBLookupFunction;
-import org.apache.iotdb.flink.sql.function.IoTDBScanTableFunction;
+import org.apache.iotdb.flink.sql.function.IoTDBBoundedScanFunction;
 import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 
 public class IoTDBDynamicTableSource implements LookupTableSource, ScanTableSource {
@@ -39,6 +39,6 @@ public class IoTDBDynamicTableSource implements LookupTableSource, ScanTableSour
 
     @Override
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext scanContext) {
-        return InputFormatProvider.of(new IoTDBScanTableFunction(options, new SchemaWrapper(schema)));
+        return InputFormatProvider.of(new IoTDBBoundedScanFunction(options, new SchemaWrapper(schema)));
     }
 }
