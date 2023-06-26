@@ -2,7 +2,7 @@ package org.apache.iotdb.test;
 
 import org.apache.flink.table.api.*;
 
-public class ScanTest {
+public class BoundedScanTest {
     public static void main(String[] args) throws Exception {
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
