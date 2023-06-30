@@ -26,7 +26,7 @@ public class Utils {
         List<List<TSDataType>> dataTypes = new ArrayList<>();
         List<List<Object>> values = new ArrayList<>();
 
-        ArrayList<String> measurement = new ArrayList<>() {{add("amperage1");}};
+        ArrayList<String> measurement = new ArrayList<>() {{add("amperage");}};
         ArrayList<TSDataType> dataType = new ArrayList<>() {{add(TSDataType.FLOAT);}};
 
         Random random = new Random();
