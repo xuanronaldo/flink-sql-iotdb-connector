@@ -18,18 +18,16 @@
  */
 package org.apache.iotdb.flink.sql.provider;
 
+import org.apache.flink.table.connector.source.*;
+import org.apache.iotdb.flink.sql.common.Options;
 import org.apache.iotdb.flink.sql.function.IoTDBBoundedScanFunction;
+import org.apache.iotdb.flink.sql.function.IoTDBCDCSourceFunction;
 import org.apache.iotdb.flink.sql.function.IoTDBLookupFunction;
 import org.apache.iotdb.flink.sql.wrapper.SchemaWrapper;
 
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
-import org.apache.flink.table.connector.source.DynamicTableSource;
-import org.apache.flink.table.connector.source.InputFormatProvider;
-import org.apache.flink.table.connector.source.LookupTableSource;
-import org.apache.flink.table.connector.source.ScanTableSource;
-import org.apache.flink.table.connector.source.TableFunctionProvider;
 
 public class IoTDBDynamicTableSource implements LookupTableSource, ScanTableSource {
   private final ReadableConfig options;
@@ -62,6 +60,10 @@ public class IoTDBDynamicTableSource implements LookupTableSource, ScanTableSour
 
   @Override
   public ScanRuntimeProvider getScanRuntimeProvider(ScanContext scanContext) {
-    return InputFormatProvider.of(new IoTDBBoundedScanFunction(options, new SchemaWrapper(schema)));
+    if (options.get(Options.MODE) == Options.Mode.CDC) {
+      return SourceFunctionProvider.of(new IoTDBCDCSourceFunction(options, new SchemaWrapper(schema)), false);
+    } else {
+      return InputFormatProvider.of(new IoTDBBoundedScanFunction(options, new SchemaWrapper(schema)));
+    }
   }
 }

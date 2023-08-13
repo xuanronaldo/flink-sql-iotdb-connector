@@ -26,15 +26,15 @@ public class Utils {
         List<List<TSDataType>> dataTypes = new ArrayList<>();
         List<List<Object>> values = new ArrayList<>();
 
-        ArrayList<String> measurement = new ArrayList<>() {{add("amperage");}};
-        ArrayList<TSDataType> dataType = new ArrayList<>() {{add(TSDataType.FLOAT);}};
+        ArrayList<String> measurement = new ArrayList<String>() {{add("amperage");}};
+        ArrayList<TSDataType> dataType = new ArrayList<TSDataType>() {{add(TSDataType.FLOAT);}};
 
         Random random = new Random();
         for (long i = 1; i <= 10000l; i++) {
             timestamps.add(i);
             measurements.add(measurement);
             dataTypes.add(dataType);
-            ArrayList<Object> value = new ArrayList<>() {{add(random.nextFloat());}};
+            ArrayList<Object> value = new ArrayList<Object>() {{add(random.nextFloat());}};
             values.add(value);
         }
 
